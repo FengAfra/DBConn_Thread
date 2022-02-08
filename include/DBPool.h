@@ -70,6 +70,7 @@ public:
 	bool StartTransaction();
 	bool Rollback();
 	bool Commit();
+	MYSQL* GetMysql() { return m_mysql; }
 	
 private:
 	CDBPool*		m_pDBPool;

@@ -21,6 +21,8 @@ BaiDu：
 using namespace std;
 
 
+typedef void (*sql_hander_t)(void * arg);
+
 extern CSLog g_demolog;
 
 

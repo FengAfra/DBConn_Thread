@@ -6,14 +6,15 @@
 class CTestTask :public CTask {
 
 public:
-	CTestTask();
+	CTestTask(sql_hander_t sql_function, void* hander_date);
 	virtual ~CTestTask();
 
 	virtual void Run();
 
 private:
-	
 
+	sql_hander_t	m_sql_hander;
+	void*			m_hander_date;
 
 };
 
