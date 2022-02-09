@@ -50,7 +50,7 @@ public:
 	
 	static CDBManager& GetInstance();
 
-	int Init();
+	int Init(const char* confPath);
 
 	CDBConn* GetDBConn(const char* dbpool_name);
 	void RelDBConn(CDBConn* pDBConn);

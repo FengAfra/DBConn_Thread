@@ -3,6 +3,20 @@
 
 
 /******************************************************************************************/
+/*********************************
+ * 函数：CDBPool
+ * 功能：构造函数，赋值数据库连接的变量
+ * 入参：
+ * 		const char * pool_name：连接池的名字
+ *		const char * db_server_ip：此连接池所连接的数据库IP
+ *		uint16_t db_server_port：此连接池所连接的数据库端口
+ *		const char * username：此连接池所连接的数据库用户名
+ *		const char * password：此连接池所连接的数据库密码
+ *		const char * db_name：此连接池锁连接的数据库实例
+ *		int max_conn_cnt：此连接池所允许的最大连接数
+ * 返回值：
+ * 		无
+*********************************/
 CDBPool::CDBPool(const char * pool_name, 
 						const char * db_server_ip, 
 						uint16_t db_server_port, 
@@ -18,11 +32,21 @@ CDBPool::CDBPool(const char * pool_name,
 	m_password = password;
 	m_db_name = db_name;
 	m_db_max_conn_cnt = max_conn_cnt;
+	if (max_conn_cnt <= MIN_DB_CONN_CNT)
+		m_db_max_conn_cnt = MIN_DB_CONN_CNT;
 
 	//初始化最小连接数
 	m_db_cur_conn_cnt = MIN_DB_CONN_CNT;
 }
 
+/*********************************
+ * 函数：~CDBPool
+ * 功能：析构函数，析构连接池中的CDBConn连接对象实例
+ * 入参：
+ *		无
+ * 返回值：
+ *		无
+*********************************/
 CDBPool::~CDBPool() {
 
 	/*
@@ -35,6 +59,15 @@ CDBPool::~CDBPool() {
 	m_free_list.clear();
 }
 
+/*********************************
+ * 函数：Init
+ * 功能：初始化函数，根据最小连接数量构造CDBConn对象实例
+ * 入参：
+ * 		无
+ * 返回值：
+ * 		成功：0
+ *		失败：-1
+*********************************/
 int CDBPool::Init() {
 	/*
 	1、创建最小的连接数，每一个连接都是一个CDBConn实例
@@ -57,6 +90,14 @@ int CDBPool::Init() {
 	return 0;
 }
 
+/*********************************
+ * 函数：GetDBConn
+ * 功能：获取此连接池的空闲连接，一直等待到有空先连接
+ * 入参：
+ * 		无
+ * 返回值：
+ * 		CDBConn*：返回数据库连接
+*********************************/
 CDBConn* CDBPool::GetDBConn() {
 	/*
 	1、对工作队列进行加锁，工作队列是共有资源，需要加mutex锁
@@ -96,6 +137,14 @@ CDBConn* CDBPool::GetDBConn() {
 
 }
 
+/*********************************
+ * 函数：RelDBConn
+ * 功能：归还数据库连接给此连接池
+ * 入参：
+ * 		CDBConn * pConn：数据库连接
+ * 返回值：
+ * 		无
+*********************************/
 void CDBPool::RelDBConn(CDBConn * pConn) {
 
 	/*
@@ -134,16 +183,37 @@ CDBManager::~CDBManager() {
 
 }
 
+/*********************************
+ * 函数：GetInstance
+ * 功能：单例模式，返回CDBManager单一实例
+ * 入参：
+ * 		无
+ * 返回值：
+ * 		CDBManager&：单一实例
+*********************************/
 CDBManager& CDBManager::GetInstance() {
 	static CDBManager instance;
-	instance.Init();
+	//instance.Init(confPath);
 	//if(instance.Init())
 	//	instance = NULL;
 	return instance;
 }
 
-int CDBManager::Init() {
+/*********************************
+ * 函数：Init
+ * 功能：初始化函数，根据配置文件路径来构建连接池，可以构建多个连接池
+ * 入参：
+ * 		const char* confPath：连接池配置文件
+ * 返回值：
+ * 		成功：0
+ *		失败：-1
+*********************************/
+int CDBManager::Init(const char* confPath) {
 
+	/*
+	1、读取配置文件，获取相关数据库连接池的配置（待定）
+	2、新建配置文件中的所有连接池
+	*/
 	char pool_name[64];
 	char host[64];
 	char port[64];
@@ -178,6 +248,14 @@ int CDBManager::Init() {
 }
 
 
+/*********************************
+ * 函数：GetDBConn
+ * 功能：根据连接池的名字来获取此连接池的空闲数据库连接
+ * 入参：
+ * 		const char * dbpool_name：连接池的名字
+ * 返回值：
+ * 		CDBConn*：数据库连接
+*********************************/
 CDBConn* CDBManager::GetDBConn(const char * dbpool_name) {
 	auto iter = m_dbpool_map.find(dbpool_name);
 	if(iter != m_dbpool_map.end()) {
@@ -188,7 +266,14 @@ CDBConn* CDBManager::GetDBConn(const char * dbpool_name) {
 	}
 }
 
-
+/*********************************
+ * 函数：RelDBConn
+ * 功能：归还数据库连接给连接池
+ * 入参：
+ * 		CDBConn * pConn：数据库连接
+ * 返回值：
+ * 		无
+*********************************/
 void CDBManager::RelDBConn(CDBConn * pDBConn) {
 	if(pDBConn == NULL) {
 		sLogMessage("pDBConn is NULL", LOGLEVEL_ERROR);

@@ -159,6 +159,8 @@ int main() {
 		sLogMessage("DBManager init failed", LOGLEVEL_ERROR);
 		return -1;
 	}
+	
+	pDBManager->Init("path");
 	sLogMessage("db init success", LOGLEVEL_INFO);
 
 	

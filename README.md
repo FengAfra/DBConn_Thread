@@ -26,19 +26,35 @@
 			void AddTask(CTask* pTask)：根据任务来确定给哪个线程执行，然后将任务CTask对象放置在线程对象CWorkerThread的任务队列中
 			void Destory()：删除线程池，对线程池中的各个线程实例进行删除
 
-	DBConn.h：定义了一系列函数，供业务层进行使用
-		1、对外暴漏接口
-			int netlib_init()：netlib_init初始化
-			int netlib_bind(SOCKET fd, NETLIB_OPT opt, void* data)：绑定参数，主要用于绑定CBaseSocket的内部信息，比如回调函数，回调函数参数等
-			int netlib_listen(const char* server_ip, const uint16_t server_port, callback_t callback, void* callback_data)：监听socket创建，业务层调用
-			SOCKET netlib_connect(const char * ip, uint16_t port, callback_t callback, void * callback_data)：业务调用，主要用来当作客户端去申请连接服务端
-			int netlib_recv(SOCKET fd, void * recvBuf, int len)：业务调用，当需要接受消息的时候使用
-			int netlib_send(SOCKET fd, void * sendbuf, int len)：业务调用，当需要发送消息的时候使用
-			int netlib_close(SOCKET fd)：业务调用，当需要关闭socket时候使用 
-			void netlib_eventloop(int wait_time)：开启事件监听循环，调用CEventDispatch的实例，并开启循环
-			void netlib_stop_eventloop()：停止事件监听循环，调用CEventDispatch的实例，并停止循环
+	DBConn.h：定义了mysql一系列类，来实现单一的mysql连接
+		1、CResultSet类：主要实现对mysql查询结果集的存放。便于前台业务获取结果集
+		2、CPrepareStatement类：主要实现mysql预处理的内容，比如绑定预处理参数以及预处理语句的执行
+		3、CDBConn类：主要实现正常的mysql函数调用。
+			int Init()：初始化函数，主要是mysql的连接以及属性设置
+			const char* GetPoolName()：获取连接池名字，可以有多个连接池
+			CResultSet* ExecuteQuery(const char* sql_query)：执行查询sql语句
+			bool ExecuteUpdate(const char* sql_query)：执行更新sql语句：包括delete，update，insert
+			bool ExecuteCreate(const char* sql_query)：数据库连接实例的创建表函数
+			bool ExecuteDrop(const char* sql_query)：数据库连接实例的删除表函数
+			bool StartTransaction()：开启事务
+			bool Rollback()：事务结束回退
+			bool Commit()：事务结束提交
+
+	DBPool.h：实现了两个类：一个是CDBCPool连接池类，对连接池进行管理。一个是CDBManager类，单例设计模式，并在此类中管理多个连接池
+		1、CDBCPool类：连接池自身管理，连接池的申请连接和归还连接
+			CDBPool(const char* pool_name, const char* db_server_ip, uint16_t db_server_port, const char* username, const char* password, const char* db_name, int max_conn_cnt)：构造函数，赋值数据库连接的变量
+			virtual ~CDBPool()：析构函数，析构连接池中的CDBConn连接对象实例
+			int Init()：初始化函数，根据最小连接数量构造CDBConn对象实例
+			CDBConn* GetDBConn()：获取此连接池的空闲连接，一直等待到有空先连接
+			void RelDBConn(CDBConn* pConn)：归还数据库连接给此连接池
+		2、CDBManager类：连接池总体管理，判断使用何种连接池
+			static CDBManager& GetInstance()：单例模式，返回CDBManager单一实例
+			int Init(const char* confPath)：初始化函数，根据配置文件路径来构建连接池，可以构建多个连接池
+			CDBConn* GetDBConn(const char* dbpool_name)：根据连接池的名字来获取此连接池的空闲数据库连接
+			void RelDBConn(CDBConn* pDBConn)：归还数据库连接给连接池
 
 
 
-当前为第一版本：只是实现了3层的调用关系。
-第二版本：实现ConnObject，用于系统业务实现
+first version success
+second version: config read，threadpool的线程扩缩容，threadpool的判断是否完成当前任务
+更新时间待定

@@ -192,15 +192,40 @@ uint32_t CPrepareStatement::GetInsertId()
 
 
 /******************************************************************************************/
+/*********************************
+ * 函数：CDBConn
+ * 功能：构造函数
+ * 入参：
+ * 		CDBPool * pDBPool：mysql连接池的句柄
+ * 返回值：
+ * 		无
+*********************************/
 CDBConn::CDBConn(CDBPool * pDBPool) {
 	m_pDBPool = pDBPool;
 	m_mysql = NULL;
 }
 
+/*********************************
+ * 函数：CDBConn
+ * 功能：析构函数
+ * 入参：
+ * 		无
+ * 返回值：
+ * 		无
+*********************************/
 CDBConn::~CDBConn() {
 
 }
 
+/*********************************
+ * 函数：Init
+ * 功能：初始化函数，主要是mysql的连接以及属性设置
+ * 入参：
+ * 		无
+ * 返回值：
+ * 		成功：0
+ *		失败：-1
+*********************************/
 int CDBConn::Init() {
 	/*
 	1、mysql初始化，创建一个mysql的上下文指针
@@ -226,44 +251,17 @@ int CDBConn::Init() {
 	return 0;
 }
 
+/*********************************
+ * 函数：GetPoolName
+ * 功能：获取连接池名字，可以有多个连接池
+ * 入参：
+ * 		无
+ * 返回值：
+ * 		const char*：连接池名字
+*********************************/
 const char* CDBConn::GetPoolName() {
 
 	return m_pDBPool->GetPoolName();
-}
-
-CResultSet* CDBConn::ExecuteQuery(const char * sql_query) {
-	mysql_ping(m_mysql);
-
-	if (mysql_real_query(m_mysql, sql_query, strlen(sql_query))) {
-		sLogMessage("mysql_real_query failed: %s, sql: %s", LOGLEVEL_ERROR, mysql_error(m_mysql), sql_query);
-		return NULL;
-	}
-
-	MYSQL_RES* res = mysql_store_result(m_mysql);
-	if (!res) {
-		sLogMessage("mysql_store_result failed: %s", LOGLEVEL_ERROR, mysql_error(m_mysql));
-		return NULL;
-	}
-
-	CResultSet* result_set = new CResultSet(res);
-	return result_set;
-
-}
-
-bool CDBConn::ExecuteUpdate(const char * sql_query) {
-	mysql_ping(m_mysql);
-	
-	if (mysql_real_query(m_mysql, sql_query, strlen(sql_query))) {
-		sLogMessage("mysql_real_query failed: %s, sql: %s", LOGLEVEL_ERROR, mysql_error(m_mysql), sql_query);
-		return false;
-	}
-
-	if (mysql_affected_rows(m_mysql) > 0) {
-		return true;
-	} else {
-		return false;
-	}
-
 }
 
 /*********************************
@@ -286,13 +284,71 @@ bool CDBConn::ExecuteCreate(const char* sql_query) {
 }
 
 /*********************************
+ * 函数：ExecuteQuery
+ * 功能：执行查询sql语句
+ * 入参：
+ * 		const char * sql_query：sql查询语句
+ * 返回值：
+ * 		CResultSet*：查询结果集
+*********************************/
+CResultSet* CDBConn::ExecuteQuery(const char * sql_query) {
+
+	/*
+	1、使用mysql_ping重连mysql
+	2、执行sql查询语句
+	3、将查询结果存放到MYSQL_RES指针中
+	4、将MYSQL_RES指针存放到客制化类CResultSet中进行结果返回
+	*/
+	mysql_ping(m_mysql);
+
+	if (mysql_real_query(m_mysql, sql_query, strlen(sql_query))) {
+		sLogMessage("mysql_real_query failed: %s, sql: %s", LOGLEVEL_ERROR, mysql_error(m_mysql), sql_query);
+		return NULL;
+	}
+
+	MYSQL_RES* res = mysql_store_result(m_mysql);
+	if (!res) {
+		sLogMessage("mysql_store_result failed: %s", LOGLEVEL_ERROR, mysql_error(m_mysql));
+		return NULL;
+	}
+
+	CResultSet* result_set = new CResultSet(res);
+	return result_set;
+
+}
+
+/*********************************
+ * 函数：ExecuteUpdate
+ * 功能：执行更新sql语句：包括delete，update，insert
+ * 入参：
+ * 		const char * sql_query：sql语句
+ * 返回值：
+ * 		成功：true
+ *		失败：false
+*********************************/
+bool CDBConn::ExecuteUpdate(const char * sql_query) {
+	mysql_ping(m_mysql);
+	
+	if (mysql_real_query(m_mysql, sql_query, strlen(sql_query))) {
+		sLogMessage("mysql_real_query failed: %s, sql: %s", LOGLEVEL_ERROR, mysql_error(m_mysql), sql_query);
+		return false;
+	}
+
+	if (mysql_affected_rows(m_mysql) > 0) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+/*********************************
  * 函数：ExecuteDrop
  * 功能：数据库连接实例的删除表函数
  * 入参：
- * 			无
+ * 		const char* sql_query：删除sql语句
  * 返回值：
- * 			成功：true
- *			失败：false
+ * 		成功：true
+ *		失败：false
 *********************************/
 bool CDBConn::ExecuteDrop(const char* sql_query) {
 	mysql_ping(m_mysql);
@@ -304,6 +360,15 @@ bool CDBConn::ExecuteDrop(const char* sql_query) {
 	return true;
 }
 
+/*********************************
+ * 函数：StartTransaction
+ * 功能：开启事务
+ * 入参：
+ * 		无
+ * 返回值：
+ * 		成功：true
+ *		失败：false
+*********************************/
 bool CDBConn::StartTransaction()
 {
 	mysql_ping(m_mysql);
@@ -317,6 +382,15 @@ bool CDBConn::StartTransaction()
 	return true;
 }
 
+/*********************************
+ * 函数：Rollback
+ * 功能：事务结束回退
+ * 入参：
+ * 		无
+ * 返回值：
+ * 		成功：true
+ *		失败：false
+*********************************/
 bool CDBConn::Rollback()
 {
 	mysql_ping(m_mysql);
@@ -330,6 +404,15 @@ bool CDBConn::Rollback()
 	return true;
 }
 
+/*********************************
+ * 函数：Commit
+ * 功能：事务结束提交
+ * 入参：
+ * 		无
+ * 返回值：
+ * 		成功：true
+ *		失败：false
+*********************************/
 bool CDBConn::Commit()
 {
 	mysql_ping(m_mysql);
@@ -342,8 +425,6 @@ bool CDBConn::Commit()
 
 	return true;
 }
-
-
 
 
 
