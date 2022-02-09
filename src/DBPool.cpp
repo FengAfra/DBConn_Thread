@@ -432,7 +432,7 @@ CDBConn* CDBPool::GetDBConn() {
 
 	CDBConn* pDBConn = m_free_list.front();
 	m_free_list.pop_front();
-
+	sLogMessage("GetDBConn db connection: %s, conn_cnt:%d", LOGLEVEL_INFO, m_pool_name.c_str(), pDBConn->GetMysql());
 	m_free_lock.UnLock();
 	return pDBConn;
 
@@ -500,7 +500,7 @@ int CDBManager::Init() {
 	strcpy(dbname, "workspace");
 	strcpy(username, "root");
 	strcpy(password, "LSFlian@123");
-	maxconncnt = 2;
+	maxconncnt = 4;
 
 	if (!host || !port || !dbname || !username || !password ) {
 		sLogMessage("not configure db instance: %s", LOGLEVEL_ERROR, pool_name);

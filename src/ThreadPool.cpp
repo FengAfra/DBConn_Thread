@@ -35,7 +35,7 @@ void CWorkerThread::Execute() {
 		}
 
 		CTask* pTask = m_task_list.front();
-		if(pTask) {
+		if(!pTask) {
 			sLogMessage("pTask failed", LOGLEVEL_INFO);
 			delete pTask;
 			continue;

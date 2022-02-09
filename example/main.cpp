@@ -1,8 +1,10 @@
 #include "ThreadPool.h"
 #include "DBPool.h"
 #include "TestTask.h"
+#include <unistd.h>
 
-#define THREAD_NUM	16
+
+#define THREAD_NUM	10
 
 static CThreadPool g_thread_pool;
 CDBManager* pDBManager;
@@ -46,9 +48,12 @@ static string int2string(uint32_t user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"
 
 
-typedef unsigned int atomic_uint;
+//typedef unsigned int atomic_uint;
 
-static atomic_uint IMUser_nId = 0;
+//static atomic_uint IMUser_nId = 0;
+
+static unsigned int IMUser_nId = 0;
+
 
 // 初始化原子变量
 #define atomic_init(obj, value) \
@@ -79,19 +84,19 @@ bool insertUser(CDBConn* pDBConn) {
 		string strOutPass = "987654321";
 		string strSalt = "abcd";
 
-		int nSex = 1;							  // 用户性别 1.男;2.女
-		int nStatus = 0;						  // 用户状态0 正常， 1 离职
-		uint32_t nDeptId = 0;					  // 所属部门
-		string strNick = "Dancy";				   // 花名
-		string strDomain = "Dancy"; 			// 花名拼音
-		string strName = "liansf";				  // 真名
-		string strTel = "1570341";			  // 手机号码
-		string strEmail = "2323088630@qq.com";	   // Email
-		string strAvatar = "";					  // 头像
-		string sign_info = "一切只为你";		   //个性签名
-		string strPass = "123456";				  //密码
-		string strCompany = "Kmerit";			//公司
-		string strAddress = "lianshuaifeng"; //地址
+        int nSex = 1;                             // 用户性别 1.男;2.女
+        int nStatus = 0;                          // 用户状态0 正常， 1 离职
+        uint32_t nDeptId = 0;                     // 所属部门
+        string strNick = "Dancy";                  // 花名
+        string strDomain = "Dancy";             // 花名拼音
+        string strName = "liansf";                // 真名
+        string strTel = "1857036";            // 手机号码
+        string strEmail = "326873713@qq.com";     // Email
+        string strAvatar = "";                    // 头像
+        string sign_info = "You have to be strong enough to respect your principles and bottom line";          //个性签名
+        string strPass = "123456";                //密码
+        string strCompany = "Dancy";           //公司
+        string strAddress = "北京市"; //地址
 
 		stmt->SetParam(index++, strSalt);
 		stmt->SetParam(index++, nSex);
@@ -113,11 +118,12 @@ bool insertUser(CDBConn* pDBConn) {
 
 		if (!bRet)
 		{
-			printf("insert user failed: %s\n", strSql.c_str());
+			sLogMessage("insert user failed: %s\n", LOGLEVEL_ERROR, strSql.c_str());
 		}
 		else
 		{
-			uint32_t nId = (uint32_t)stmt->GetInsertId();		 
+			uint32_t nId = (uint32_t)stmt->GetInsertId();
+			sLogMessage("register then get user_id:%d\n", LOGLEVEL_INFO, nId);
 		}
 	}
 	delete stmt;
@@ -125,10 +131,8 @@ bool insertUser(CDBConn* pDBConn) {
 	return true;
 }
 
-void *insert_functionUser(void *arg)
+void insert_functionUser(void *arg)
 {
-	
-
     char* pool_name = (char*)arg;
 	CDBConn* pDBConn = pDBManager->GetDBConn(pool_name);
 	if(pDBConn) {
@@ -161,7 +165,7 @@ int main() {
 
 	char pool_name[64];
 	memset(pool_name, 0, sizeof(pool_name));
-	strcpy(pool_name, "MYSQLDB")
+	strcpy(pool_name, "MYSQLDB");
 
 	CDBConn *pDBConn = pDBManager->GetDBConn(pool_name);
 	if (pDBConn)
@@ -185,13 +189,15 @@ int main() {
     }
    	pDBManager->RelDBConn(pDBConn);
 
-	for (int i = 0; i < THREAD_NUM; i++) {
-		CTask* pTask = new CTestTask( insert_functionUser, pool_name);
+	for (int i = 0; i < 100; i++) {
+		CTask* pTask = new CTestTask( insert_functionUser, (void*)pool_name);
 		g_thread_pool.AddTask(pTask);
 	}
-	sleep(1000);
-	return 0;
+	sleep(10);
 
+	g_thread_pool.Destory();
+	return 0;
+	
 }
 
 
