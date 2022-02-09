@@ -11,14 +11,13 @@ public:
 
 	CWorkerThread();
 	~CWorkerThread();
+	void SetThreadIdx(uint32_t       idx) {m_thread_idx = idx;}
 
 	void Start();
-	void Execute();
-	void PushTask(CTask* pTask);
-
 	static void* StartRoutine(void * arg);
+	void Execute();
 
-	void SetThreadIdx(uint32_t       idx) {m_thread_idx = idx;}
+	void PushTask(CTask* pTask);
 
 private:
 
